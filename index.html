@@ -1,0 +1,143 @@
+<form id="uploadForm" enctype="multipart/form-data">
+    <input id="fileToUpload" type="file" name="fileToUpload">
+    <input type="submit" value="アップロード">
+    <div id="resultContainer"></div>
+</form>
+
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // デフォルトのフォーム送信をキャンセル
+
+        var file = document.getElementById('fileToUpload').files[0];
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            var contents = e.target.result;
+            // ここでファイルの内容を処理する関数を呼び出す
+            processFileContents(contents);
+        };
+
+        reader.readAsText(file);
+    });
+
+    function processFileContents(contents) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(contents, 'text/html');
+        var paragraphs = doc.getElementsByTagName('p');
+
+        var data = {};
+        for (var i = 0; i < paragraphs.length; i++) {
+            var paragraph = paragraphs[i];
+            var mainSpan = paragraph.getElementsByTagName('span')[0];
+            var mainText = mainSpan.textContent.trim();
+            
+            if (mainText !== '[雑談]' || mainText !== '[情報]') {
+                var nameSpan = paragraph.getElementsByTagName('span')[1];
+                var name = nameSpan.textContent.trim();
+                
+                var resultSpan = paragraph.getElementsByTagName('span')[2];
+                var resultText = resultSpan.textContent.trim();
+                var match = resultText.match(/【(.+?)】.*＞ (\d+)/);
+                if (match) {
+                    var skill = match[1];
+                    var diceResult = parseInt(match[2]);
+                    
+                    if (!data[name]) {
+                        data[name] = {
+                            skill: skill, // 技能
+                            totalDiceCount: 0, // 総ダイス数
+                            successCount: 0, // 成功数
+                            specialCount: 0, // スペシャル数
+                            criticalSuccessCount: 0, // 決定的成功数
+                            failureCount: 0, // 失敗数
+                            fumbleCount: 0, // 致命的失敗数
+                            criticalSuccessResults: {}, // 決定的成功の結果を配列に格納
+                            fumbleResults:{} // 致命的失敗の結果を配列に格納
+                        };
+                    }
+                    
+                    data[name].totalDiceCount++;
+                    
+                    if (resultText.includes('決定的成功/スペシャル')) {
+                        data[name].specialCount++;
+                        data[name].criticalSuccessCount++;
+                    } else if (resultText.includes('決定的成功')) {
+                        data[name].criticalSuccessCount++;
+                    } else if (resultText.includes('成功')) {
+                        data[name].successCount++;
+                    } else if (resultText.includes('致命的失敗')) {
+                        data[name].fumbleCount++;
+                    } else if (resultText.includes('失敗')) {
+                        data[name].failureCount++;
+                    }
+
+                    // 決定的成功と致命的失敗の結果を格納
+                    if (resultText.includes('決定的成功')) {
+                        if (!data[name].criticalSuccessResults[skill]) {
+                            data[name].criticalSuccessResults[skill] = [];
+                        }
+                        data[name].criticalSuccessResults[skill].push(diceResult);
+                    } else if (resultText.includes('致命的失敗')) {
+                        if (!data[name].fumbleResults[skill]) {
+                            data[name].fumbleResults[skill] = [];
+                        }
+                        data[name].fumbleResults[skill].push(diceResult);
+                    }
+                }
+            }
+        }
+        // 結果をブラウザに表示
+        var resultContainer = document.getElementById('resultContainer');
+        resultContainer.innerHTML = '';
+
+        for (var name in data) {
+            var result = data[name];
+            
+            var criticalsuccessRate = (result.criticalSuccessCount / result.totalDiceCount) * 100;
+            var fumbleRate = (result.fumbleCount / result.totalDiceCount) * 100;
+            
+            var output = '<div><strong>' + name + '</strong>';
+            output += '<ul>';
+            output += '<li>総ダイス数: ' + result.totalDiceCount + '回</li>';
+            output += '<li>決定的成功: ' + result.criticalSuccessCount + '回</li>';
+            output += '<ul>';
+
+            // 決定的成功の技能結果を表示
+            for (var skill in result.criticalSuccessResults) {
+                output += '<li>【' + skill + '】</li>';
+                output += '<ul>';
+
+                var skillValues = result.criticalSuccessResults[skill];
+                for (var j = 0; j < skillValues.length; j++) {
+                    output += '<li>＞ ' + skillValues[j] + '</li>';
+                }
+
+                output += '</ul>';
+            }
+
+            output += '</ul></li>';
+            output += '<li>致命的失敗: ' + result.fumbleCount + '回';
+            output += '<ul>';
+
+            // 致命的失敗の技能結果を表示
+            for (var skill in result.fumbleResults) {
+                output += '<li>【' + skill + '】</li>';
+                output += '<ul>';
+
+                var skillValues = result.fumbleResults[skill];
+                for (var j = 0; j < skillValues.length; j++) {
+                    output += '<li>＞ ' + skillValues[j] + '</li>';
+                }
+
+                output += '</ul>';
+            }
+
+            output += '</ul></li>';
+            output += '<li>決定的成功率: ' + criticalsuccessRate.toFixed(2) + '%</li>';
+            output += '<li>致命的失敗率: ' + fumbleRate.toFixed(2) + '%</li>';
+            output += '</ul></div>';
+
+            resultContainer.innerHTML += output;
+        }
+    }
+</script>
