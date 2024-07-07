@@ -8,9 +8,7 @@
 <form id="uploadForm" enctype="multipart/form-data">
     <input id="fileToUpload" type="file" name="fileToUpload">
     <input type="submit" value="アップロード">
-    <div id="checkboxContainer">
-        <!-- ファイル読み込み時に動的に生成されるチェックボックスが追加されるコンテナ -->
-    </div>
+    <button type="button" id="copyButton" onclick="copyResults()" style="display:none;">コピー</button>
     <div id="resultContainer" class="list"></div>
 </form>
 
@@ -30,8 +28,8 @@
         reader.readAsText(file);
     });
 
-     // 技能をカウントするスクリプト
-     function processFileContents(contents) {
+    // 技能をカウントするスクリプト
+    function processFileContents(contents) {
         var parser = new DOMParser();
         var doc = parser.parseFromString(contents, 'text/html');
         var paragraphs = doc.getElementsByTagName('p');
@@ -115,7 +113,7 @@
             var criticalsuccessRate = (result.criticalSuccessCount / result.totalDiceCount) * 100;
             var fumbleRate = (result.fumbleCount / result.totalDiceCount) * 100;
             
-            var output = '<div><strong>' + name + '</strong>';
+            var output = '<div><strong>🔻 ' + name + '</strong>';
             output += '<ul>';
             output += '<li>総ダイス数: ' + result.totalDiceCount + '回</li>';
             output += '<li>決定的成功: ' + result.criticalSuccessCount + '回</li>';
@@ -154,7 +152,7 @@
             output += '</ul></li>';
             output += '<li>決定的成功率: ' + criticalsuccessRate.toFixed(2) + '%</li>';
             output += '<li>致命的失敗率: ' + fumbleRate.toFixed(2) + '%</li>';
-            output += '</ul></div>';
+            output += '</ul></div></br>';
 
             resultContainer.innerHTML += output;
         }
@@ -163,7 +161,7 @@
         var totalCriticalSuccessRate = (totalCriticalSuccessCount / totalDiceCount) * 100;
         var totalFumbleRate = (totalFumbleCount / totalDiceCount) * 100;
 
-        var totalOutput = '<div><strong>総合結果</strong>';
+        var totalOutput = '<div><strong>🔻 総合結果</strong>';
         totalOutput += '<ul>';
         totalOutput += '<li>総ダイス数: ' + totalDiceCount + '回</li>';
         totalOutput += '<li>決定的成功: ' + totalCriticalSuccessCount + '回</li>';
@@ -173,6 +171,22 @@
         totalOutput += '</ul></div>';
 
         resultContainer.innerHTML += totalOutput;
+
+        // 全文コピーのボタンを表示
+        document.getElementById('copyButton').style.display = 'inline';
+    }
+
+    // 結果をクリップボードにコピーする関数
+    function copyResults() {
+        var resultContainer = document.getElementById('resultContainer');
+        var textToCopy = resultContainer.innerText.trim(); // 不要な改行を取り除くために trim() を使用
+        var tempTextarea = document.createElement('textarea');
+        tempTextarea.value = textToCopy;
+        document.body.appendChild(tempTextarea);
+        tempTextarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempTextarea);
+        alert("結果がクリップボードにコピーされました！");
     }
 </script>
 </html>
