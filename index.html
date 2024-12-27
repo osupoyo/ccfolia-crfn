@@ -113,7 +113,8 @@
             var criticalsuccessRate = (result.criticalSuccessCount / result.totalDiceCount) * 100;
             var fumbleRate = (result.fumbleCount / result.totalDiceCount) * 100;
             
-            var output = '<div><strong>🔻 ' + name + '</strong>';
+            var output = '<div>';
+            output += '<label><input type="checkbox" class="resultCheckbox" checked> 🔻 ' + name + '</label>';
             output += '<ul>';
             output += '<li>総ダイス数: ' + result.totalDiceCount + '回</li>';
             output += '<li>決定的成功: ' + result.criticalSuccessCount + '回</li>';
@@ -161,7 +162,8 @@
         var totalCriticalSuccessRate = (totalCriticalSuccessCount / totalDiceCount) * 100;
         var totalFumbleRate = (totalFumbleCount / totalDiceCount) * 100;
 
-        var totalOutput = '<div><strong>🔻 総合結果</strong>';
+        var totalOutput = '<div>';
+        totalOutput += '<label><input type="checkbox" class="resultCheckbox" checked> 🔻 総合結果</label>';
         totalOutput += '<ul>';
         totalOutput += '<li>総ダイス数: ' + totalDiceCount + '回</li>';
         totalOutput += '<li>決定的成功: ' + totalCriticalSuccessCount + '回</li>';
@@ -179,14 +181,31 @@
     // 結果をクリップボードにコピーする関数
     function copyResults() {
         var resultContainer = document.getElementById('resultContainer');
-        var textToCopy = resultContainer.innerText.trim(); // 不要な改行を取り除くために trim() を使用
+        var resultDivs = resultContainer.querySelectorAll('div'); // <div>単位で取得
+
+        var textToCopy = '';
+
+        // チェックが入っている内容だけコピー
+        resultDivs.forEach(function(div) {
+            var checkbox = div.querySelector('.resultCheckbox'); // 各チェックボックスを取得
+            if (checkbox && checkbox.checked) {
+                textToCopy += div.innerText.trim() + '\n\n';
+            }
+        });
+
+        if (textToCopy.trim() === '') {
+            alert('チェックが入った結果がありません。');
+            return;
+        }
+
+        // テキストをクリップボードにコピー
         var tempTextarea = document.createElement('textarea');
-        tempTextarea.value = textToCopy;
+        tempTextarea.value = textToCopy.trim(); // 最初や最後の余計な改行を削除
         document.body.appendChild(tempTextarea);
         tempTextarea.select();
         document.execCommand('copy');
         document.body.removeChild(tempTextarea);
-        alert("結果がクリップボードにコピーされました！");
+        alert("選択した結果がクリップボードにコピーされました！");
     }
 </script>
 </html>
