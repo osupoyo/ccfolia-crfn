@@ -2,38 +2,99 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <link rel="stylesheet" type="text/css" href="css/style.css" />
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+        <link rel="icon" href="/image/favicon.ico">
         <title>クリファンチェック</title>
-        <style>
-            label {
-                cursor: pointer;
-            }
-        </style>
     </head>
-<form id="uploadForm" enctype="multipart/form-data">
-    <input id="fileToUpload" type="file" name="fileToUpload">
-    <input type="submit" value="アップロード">
-    <button type="button" id="copyButton" onclick="copyResults()" style="display:none;">コピー</button>
-    <div id="resultContainer" class="list"></div>
-</form>
+    <header>
+        <h1>クリファンチェックツール</h1>
+        <h2>CCFOLIA only ver 1.2.1</h2>
+    </header>
+    <div class="body">
+        <nav class="sideBar">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div id="upFileWrap">
+                    <div id="inputFile">
+                        <!-- ドラッグアンドドロップエリア -->
+                        <p id="dropArea">ここにファイルをドロップしてください<br>または</p>
+    
+                        <div id="inputFileWrap">
+                            <!-- ファイル選択ボタン -->
+                            <input id="fileToUpload" type="file" name="fileToUpload" accept=".html">
+                            <div id="btnInputFile"><span>ファイルを選択する</span></div>
+                        </div>
+                    </div>
+                    <div id="playerFilter"></div>
+                    <button id="copyButton" type="button" onclick="copyResults()" class="copyButton" style="display:none;">コピー</button>
+                </form>
+            </nav>
+            <div class="main">
+                <p>RESULT</p>
+                <div id="resultContainer" class="list"></div>
+            </div>
+        </div>
+    
+    
 
 <script>
-    document.getElementById('uploadForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // デフォルトのフォーム送信をキャンセル
+    // ドラッグ&ドロップエリアの取得
+var fileArea = document.getElementById('dropArea');
 
-        var file = document.getElementById('fileToUpload').files[0];
-        var reader = new FileReader();
+// input[type=file]の取得
+var fileInput = document.getElementById('fileToUpload'); // 修正: idが 'fileToUpload' なのでこちらに変更
 
-        reader.onload = function(e) {
-            var contents = e.target.result;
-            // ここでファイルの内容を処理する関数を呼び出す
-            processFileContents(contents);
-        };
+// ドラッグオーバー時の処理
+fileArea.addEventListener('dragover', function(e){
+    e.preventDefault();
+    fileArea.classList.add('dragover');
+});
 
-        reader.readAsText(file);
-    });
+// ドラッグアウト時の処理
+fileArea.addEventListener('dragleave', function(e){
+    e.preventDefault();
+    fileArea.classList.remove('dragover');
+});
 
-    // 技能をカウントするスクリプト
+// ドロップ時の処理
+fileArea.addEventListener('drop', function(e){
+    e.preventDefault();
+    fileArea.classList.remove('dragover');
+
+    // ドロップしたファイルの取得
+    var files = e.dataTransfer.files;
+
+    // 取得したファイルをinput[type=file]へ
+    fileInput.files = files;
+
+    // ファイルが正常に受け取れた場合に処理を実行
+    if (files[0]) {
+        readFile(files[0]);
+    }
+});
+
+// input[type=file]に変更があれば実行
+fileInput.addEventListener('change', function(e){
+    var file = e.target.files[0];
+
+    // ファイルが正常に受け取れた場合に処理を実行
+    if (file) {
+        readFile(file);
+    }
+}, false);
+
+// ファイルを読み込む関数
+function readFile(file) {
+    var reader = new FileReader();
+
+    reader.onload = function(e) {
+        var contents = e.target.result;
+        processFileContents(contents); // ファイル内容の処理を行う関数を呼び出す
+    };
+
+    reader.readAsText(file);
+}
+
+    // 技能をカウントする関数
     function processFileContents(contents) {
         var parser = new DOMParser();
         var doc = parser.parseFromString(contents, 'text/html');
@@ -108,6 +169,7 @@
                 }
             }
         }
+        
         // 結果をブラウザに表示
         var resultContainer = document.getElementById('resultContainer');
         resultContainer.innerHTML = '';
@@ -118,11 +180,11 @@
             var criticalsuccessRate = (result.criticalSuccessCount / result.totalDiceCount) * 100;
             var fumbleRate = (result.fumbleCount / result.totalDiceCount) * 100;
             
-            var output = '<div>';
-            output += '<label><input type="checkbox" class="resultCheckbox" checked> 🔻 ' + name + '</label>';
+            var output = '<div id="result_' + name + '">';
+            output += '<p class="name">🔻 ' + name + '</p>';
             output += '<ul>';
-            output += '<li>総ダイス数: ' + result.totalDiceCount + '回</li>';
-            output += '<li>決定的成功: ' + result.criticalSuccessCount + '回</li>';
+            output += '<li><p class="total">総ダイス数: ' + result.totalDiceCount + '回</p></li>';
+            output += '<li><p class="critical">決定的成功: ' + result.criticalSuccessCount + '回</p></li>';
             output += '<ul>';
 
             // 決定的成功の技能結果を表示
@@ -139,7 +201,7 @@
             }
 
             output += '</ul></li>';
-            output += '<li>致命的失敗: ' + result.fumbleCount + '回';
+            output += '<li><p class="fumble">致命的失敗: ' + result.fumbleCount + '回</p>';
             output += '<ul>';
 
             // 致命的失敗の技能結果を表示
@@ -156,33 +218,68 @@
             }
 
             output += '</ul></li>';
-            output += '<li>決定的成功率: ' + criticalsuccessRate.toFixed(2) + '%</li>';
-            output += '<li>致命的失敗率: ' + fumbleRate.toFixed(2) + '%</li>';
-            output += '</ul></div></br>';
+            output += '<li><p class="critical">決定的成功率: ' + criticalsuccessRate.toFixed(2) + '%</p></li>';
+            output += '<li><p class="fumble">致命的失敗率: ' + fumbleRate.toFixed(2) + '%</p></li>';
+            output += '</ul></div>';
 
             resultContainer.innerHTML += output;
+        }
+        
+        // nav部分にプレイヤー名+チェックボックスを表示
+        var sideBar = document.querySelector('.sideBar');
+
+        // nav部分を初期化
+        var navOutput = '<ul>';
+
+        // プレイヤー名を一度だけリスト化
+        for (var name in data) {
+            navOutput += '<li><label><input type="checkbox" class="resultCheckbox" checked onchange="togglePlayerVisibility(\'' + name + '\')"> ' + name + '</label></li>';
+        }
+
+        navOutput += '<li><label><input type="checkbox" class="resultCheckbox" checked onchange="togglePlayerVisibility(\'' + '総合結果' + '\')"> 総合結果</label></li>';
+        navOutput += '</ul>';
+
+        var existingPlayerFilter = document.querySelector('#playerFilter');
+        if (existingPlayerFilter) {
+            existingPlayerFilter.innerHTML = navOutput;
+        } else {
+            var newPlayerFilter = document.createElement('div');
+            newPlayerFilter.id = 'playerFilter';
+            newPlayerFilter.innerHTML = navOutput;
+            sideBar.appendChild(newPlayerFilter);
         }
 
         // 総数を表示
         var totalCriticalSuccessRate = (totalCriticalSuccessCount / totalDiceCount) * 100;
         var totalFumbleRate = (totalFumbleCount / totalDiceCount) * 100;
 
-        var totalOutput = '<div>';
-        totalOutput += '<label><input type="checkbox" class="resultCheckbox" checked> 🔻 総合結果</label>';
+        var totalOutput = '<div id="result_総合結果">';
+        totalOutput += '<p class="name">🔻 総合結果</p>';
         totalOutput += '<ul>';
-        totalOutput += '<li>総ダイス数: ' + totalDiceCount + '回</li>';
-        totalOutput += '<li>決定的成功: ' + totalCriticalSuccessCount + '回</li>';
-        totalOutput += '<li>致命的失敗: ' + totalFumbleCount + '回</li>';
-        totalOutput += '<li>決定的成功率: ' + totalCriticalSuccessRate.toFixed(2) + '%</li>';
-        totalOutput += '<li>致命的失敗率: ' + totalFumbleRate.toFixed(2) + '%</li>';
+        totalOutput += '<li><p class="total">総ダイス数: ' + totalDiceCount + '回</p></li>';
+        totalOutput += '<li><p class="critical">決定的成功: ' + totalCriticalSuccessCount + '回</p></li>';
+        totalOutput += '<li><p class="fumble">致命的失敗: ' + totalFumbleCount + '回</p></li>';
+        totalOutput += '<li><p class="critical">決定的成功率: ' + totalCriticalSuccessRate.toFixed(2) + '%</p></li>';
+        totalOutput += '<li><p class="fumble">致命的失敗率: ' + totalFumbleRate.toFixed(2) + '%</p></li>';
         totalOutput += '</ul></div>';
 
         resultContainer.innerHTML += totalOutput;
 
         // 全文コピーのボタンを表示
-        document.getElementById('copyButton').style.display = 'inline';
+        document.getElementById('copyButton').style.display = 'block';
     }
 
+    // プレイヤーの結果の表示・非表示を制御する関数
+    function togglePlayerVisibility(name) {
+        var playerDiv = document.getElementById('result_' + name);
+        var checkbox = document.querySelector('input[type="checkbox"][onchange*="' + name + '"]');
+        if (checkbox.checked) {
+            playerDiv.style.display = 'block';
+        } else {
+            playerDiv.style.display = 'none';
+        }
+    }
+    
     // 結果をクリップボードにコピーする関数
     function copyResults() {
         var resultContainer = document.getElementById('resultContainer');
@@ -190,13 +287,27 @@
 
         var textToCopy = '';
 
-        // チェックが入っている内容だけコピー
-        resultDivs.forEach(function(div) {
-            var checkbox = div.querySelector('.resultCheckbox'); // 各チェックボックスを取得
-            if (checkbox && checkbox.checked) {
-                textToCopy += div.innerText.trim() + '\n\n';
+        // チェックが入っているプレイヤー名を取得
+        var checkboxes = document.querySelectorAll('.resultCheckbox:checked');
+    
+        // チェックされたプレイヤー名に対応する結果をコピー
+        checkboxes.forEach(function(checkbox) {
+            var playerName = checkbox.parentElement.textContent.trim(); // プレイヤー名を取得
+            var playerDiv = document.getElementById('result_' + playerName); // そのプレイヤーの結果の<div>を取得
+            
+            if (playerDiv) {
+                var playerText = playerDiv.innerText.trim();
+
+                // 「致命的失敗率」の直前に改行を追加
+                playerText = playerText.replace(/(致命的失敗率:.*)/, '\n$1');
+
+                // 不要な改行を削除
+                playerText = playerText.replace(/\n+/g, '\n');
+
+                textToCopy += playerText + '\n' + '\n'; // プレイヤー結果を追加
             }
         });
+  
 
         if (textToCopy.trim() === '') {
             alert('チェックが入った結果がありません。');
