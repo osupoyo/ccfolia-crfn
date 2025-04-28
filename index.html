@@ -8,7 +8,7 @@
     </head>
     <header>
         <h1>クリファンチェックツール</h1>
-        <h2>CCFOLIA only ver 2.0.0</h2>
+        <h2>CCFOLIA only ver 2.1.0</h2>
     </header>
     <div class="body">
         <nav class="sideBar">
@@ -38,61 +38,61 @@
 
 <script>
     // ドラッグ&ドロップエリアの取得
-var fileArea = document.getElementById('dropArea');
+    var fileArea = document.getElementById('dropArea');
 
-// input[type=file]の取得
-var fileInput = document.getElementById('fileToUpload'); // 修正: idが 'fileToUpload' なのでこちらに変更
+    // input[type=file]の取得
+    var fileInput = document.getElementById('fileToUpload'); // 修正: idが 'fileToUpload' なのでこちらに変更
 
-// ドラッグオーバー時の処理
-fileArea.addEventListener('dragover', function(e){
-    e.preventDefault();
-    fileArea.classList.add('dragover');
-});
+    // ドラッグオーバー時の処理
+    fileArea.addEventListener('dragover', function(e){
+        e.preventDefault();
+        fileArea.classList.add('dragover');
+    });
 
-// ドラッグアウト時の処理
-fileArea.addEventListener('dragleave', function(e){
-    e.preventDefault();
-    fileArea.classList.remove('dragover');
-});
+    // ドラッグアウト時の処理
+    fileArea.addEventListener('dragleave', function(e){
+        e.preventDefault();
+        fileArea.classList.remove('dragover');
+    });
 
-// ドロップ時の処理
-fileArea.addEventListener('drop', function(e){
-    e.preventDefault();
-    fileArea.classList.remove('dragover');
+    // ドロップ時の処理
+    fileArea.addEventListener('drop', function(e){
+        e.preventDefault();
+        fileArea.classList.remove('dragover');
 
-    // ドロップしたファイルの取得
-    var files = e.dataTransfer.files;
+        // ドロップしたファイルの取得
+        var files = e.dataTransfer.files;
 
-    // 取得したファイルをinput[type=file]へ
-    fileInput.files = files;
+        // 取得したファイルをinput[type=file]へ
+        fileInput.files = files;
 
-    // ファイルが正常に受け取れた場合に処理を実行
-    if (files[0]) {
-        readFile(files[0]);
+        // ファイルが正常に受け取れた場合に処理を実行
+        if (files[0]) {
+            readFile(files[0]);
+        }
+    });
+
+    // input[type=file]に変更があれば実行
+    fileInput.addEventListener('change', function(e){
+        var file = e.target.files[0];
+
+        // ファイルが正常に受け取れた場合に処理を実行
+        if (file) {
+            readFile(file);
+        }
+    }, false);
+
+    // ファイルを読み込む関数
+    function readFile(file) {
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            var contents = e.target.result;
+            processFileContents(contents); // ファイル内容の処理を行う関数を呼び出す
+        };
+
+        reader.readAsText(file);
     }
-});
-
-// input[type=file]に変更があれば実行
-fileInput.addEventListener('change', function(e){
-    var file = e.target.files[0];
-
-    // ファイルが正常に受け取れた場合に処理を実行
-    if (file) {
-        readFile(file);
-    }
-}, false);
-
-// ファイルを読み込む関数
-function readFile(file) {
-    var reader = new FileReader();
-
-    reader.onload = function(e) {
-        var contents = e.target.result;
-        processFileContents(contents); // ファイル内容の処理を行う関数を呼び出す
-    };
-
-    reader.readAsText(file);
-}
 
     // 技能をカウントする関数
     function processFileContents(contents) {
@@ -105,68 +105,88 @@ function readFile(file) {
         var totalCriticalSuccessCount = 0;
         var totalFumbleCount = 0;
 
-        for (var i = 0; i < paragraphs.length; i++) {
-            var paragraph = paragraphs[i];
-            var mainSpan = paragraph.getElementsByTagName('span')[0];
-            var mainText = mainSpan.textContent.trim();
+        function handleSingleRoll(name, resultText) {
+            var match = resultText.match(/【(.+?)】.*＞ (\d+)/);
             
-            if (mainText !== '[雑談]' && mainText !== '[情報]') {
-                var nameSpan = paragraph.getElementsByTagName('span')[1];
-                var name = nameSpan.textContent.trim();
-                
-                var resultSpan = paragraph.getElementsByTagName('span')[2];
-                var resultText = resultSpan.textContent.trim();
-                var match = resultText.match(/【(.+?)】.*＞ (\d+)/);
-                if (match) {
-                    var skill = match[1];
-                    var diceResult = parseInt(match[2]);
-                    
-                    if (!data[name]) {
-                        data[name] = {
-                            skill: skill, // 技能
-                            totalDiceCount: 0, // 総ダイス数
-                            successCount: 0, // 成功数
-                            specialCount: 0, // スペシャル数
-                            criticalSuccessCount: 0, // 決定的成功数
-                            failureCount: 0, // 失敗数
-                            fumbleCount: 0, // 致命的失敗数
-                            criticalSuccessResults: {}, // 決定的成功の結果を配列に格納
-                            fumbleResults:{} // 致命的失敗の結果を配列に格納
-                        };
-                    }
-                    
-                    data[name].totalDiceCount++;
-                    totalDiceCount++;
-                    
-                    if (resultText.includes('決定的成功/スペシャル')) {
-                        data[name].specialCount++;
-                        data[name].criticalSuccessCount++;
-                        totalCriticalSuccessCount++;
-                    } else if (resultText.includes('決定的成功')) {
-                        data[name].criticalSuccessCount++;
-                        totalCriticalSuccessCount++;
-                    } else if (resultText.includes('成功')) {
-                        data[name].successCount++;
-                    } else if (resultText.includes('致命的失敗')) {
-                        data[name].fumbleCount++;
-                        totalFumbleCount++;
-                    } else if (resultText.includes('失敗')) {
-                        data[name].failureCount++;
-                    }
+            if (!match) return;
 
-                    // 決定的成功と致命的失敗の結果を格納
-                    if (resultText.includes('決定的成功')) {
-                        if (!data[name].criticalSuccessResults[skill]) {
-                            data[name].criticalSuccessResults[skill] = [];
-                        }
-                        data[name].criticalSuccessResults[skill].push(diceResult);
-                    } else if (resultText.includes('致命的失敗')) {
-                        if (!data[name].fumbleResults[skill]) {
-                            data[name].fumbleResults[skill] = [];
-                        }
-                        data[name].fumbleResults[skill].push(diceResult);
-                    }
-                }
+            var skill = match[1];
+            var diceResult = parseInt(match[2]);
+
+            var result = data[name];
+            result.totalDiceCount++;
+            totalDiceCount++;
+
+            if (resultText.includes('決定的成功/スペシャル')) {
+            result.specialCount++;
+            result.criticalSuccessCount++;
+            totalCriticalSuccessCount++;
+            } else if (resultText.includes('決定的成功')) {
+            result.criticalSuccessCount++;
+            totalCriticalSuccessCount++;
+            } else if (resultText.includes('成功')) {
+            result.successCount++;
+            } else if (resultText.includes('致命的失敗')) {
+            result.fumbleCount++;
+            totalFumbleCount++;
+            } else if (resultText.includes('失敗')) {
+            result.failureCount++;
+            }
+
+            // 技能ごとの詳細
+            if (resultText.includes('決定的成功')) {
+            result.criticalSuccessResults[skill] = result.criticalSuccessResults[skill] || [];
+            result.criticalSuccessResults[skill].push(diceResult);
+            } else if (resultText.includes('致命的失敗')) {
+            result.fumbleResults[skill] = result.fumbleResults[skill] || [];
+            result.fumbleResults[skill].push(diceResult);
+            }
+        }
+
+        // --------------------------------------------------------
+
+        for (var i = 0; i < paragraphs.length; i++) {
+            var p = paragraphs[i];
+            var mainText = p.getElementsByTagName('span')[0].textContent.trim();
+            if (mainText === '[雑談]' || mainText === '[情報]') continue;
+
+            var name = p.getElementsByTagName('span')[1].textContent.trim();
+            var raw = p.getElementsByTagName('span')[2].textContent.trim();
+
+            // ここで判定を入れてスキップ
+            var singleMatch = raw.match(/【(.+?)】.*＞ (\d+)/);
+            var multiMatch  = raw.match(/^x(\d+)[\s\S]*?【(.+?)】/);
+            // 「単発ロール」でも「複数ロール」でもないならスキップ
+            if (!singleMatch && !multiMatch) continue;
+
+            // 名前のデータ初期化
+            if (!data[name]) {
+                data[name] = {
+                    totalDiceCount: 0,
+                    successCount: 0,
+                    specialCount: 0,
+                    criticalSuccessCount: 0,
+                    failureCount: 0,
+                    fumbleCount: 0,
+                    criticalSuccessResults: {},
+                    fumbleResults: {}
+                };
+            }
+
+            // ---------- 複数ロール判定 ----------
+            if (multiMatch) {
+                var count = parseInt(multiMatch[1], 10);
+                var skill = multiMatch[2];
+                // 「#1」「#2」…で分割してそれぞれ通常フォーマットに変換
+                raw.split(/#\d+\s*/).slice(1).forEach(function(part) {
+                var text = '【' + skill + '】 ' + part.trim();
+                handleSingleRoll(name, text);
+                });
+            } else {
+
+                // 通常の1回ロール
+                handleSingleRoll(name, raw);
+
             }
         }
         
